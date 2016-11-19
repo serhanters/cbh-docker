@@ -1,0 +1,102 @@
+# Замените  VIRTUAL_HOST на свой хост, а так же можете заменить в секциях volumes путь к проекту на свой.
+# Вы можете указать либо image: nginx, либо указать build: path - где path = путь к Dockerfile
+# PS - не забудьте не своей локальной машине добавить в /etc/hosts - свой новый локальный хост :)
+front:
+  restart: always
+#  image: nginx:latest
+  build: ./docker/conteiners/nginx/
+  environment:
+    - VIRTUAL_HOST=test
+  volumes:
+    - ./:/var/www/html/
+    - ./docker/configs/nginx/conf.d:/etc/nginx/conf.d
+    - ./docker/log/nginx:/var/log/nginx
+  links:
+    - fpm
+
+# Вы можете указать либо image: nginx, либо указать build: path - где path = путь к Dockerfile
+# Для пересборки проекта с любой другой версией PHP:
+#   1. раскоментируйте нужную версию, при этом закоментировав ненужную.
+#   2. выполните "docker-compose up --build" для того чтобы выполнить пересборку
+fpm:
+  restart: always
+#  image: php:7.1-fpm
+#  build: ./docker/conteiners/php/5.6/
+  build: ./docker/conteiners/php/7.0/
+#  build: ./docker/conteiners/php/7.1/
+  volumes:
+    - ./:/var/www/html/
+    - ./docker/configs/php/7.1/:/usr/local/etc/php/conf.d
+  links:
+    - mysql:mysql
+    - mongo:mongo
+    - memcached:memcached
+    - redis:redis
+    - rabbitmq:rabbitmq
+
+mysql:
+  restart: always
+#  image: mysql:latest
+  build: ./docker/conteiners/mysql/
+  ports:
+    - "3306:3306"
+  environment:
+      MYSQL_ROOT_PASSWORD: 1
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+      MYSQL_DATABASE: database
+  volumes:
+    - ./docker/data/mysql:/var/lib/mysql
+    - ./docker/log/mysql:/var/log/mysql
+
+mongo:
+  restart: always
+#  image: mongo:latest
+  build: ./docker/conteiners/mongo/
+  ports:
+    - "27017:27017"
+  volumes:
+    - ./docker/data/mongo:/data/configdb
+
+memcached:
+  restart: always
+#  image: memcached:latest
+  build: ./docker/conteiners/memcached/
+  ports:
+    - "11211:11211"
+  volumes:
+    - ./docker/data/memcached:/var/lib/memcached
+
+redis:
+  restart: always
+#  image: redis:latest
+  build: ./docker/conteiners/redis/
+  ports:
+    - "6379:6379"
+  volumes:
+    - ./docker/data/redis:/data
+
+rabbitmq:
+  restart: always
+#  image: rabbitmq:latest
+  build: ./docker/conteiners/rabbitmq/
+  ports:
+    - "5672:5672"
+    - "15671:15671"
+    - "8080:15672"
+  environment:
+    RABBITMQ_DEFAULT_USER: guest
+    RABBITMQ_DEFAULT_PASS: guest
+
+postgres:
+  restart: always
+#  image: postgres:latest
+  build: ./docker/conteiners/postgres/
+  volumes:
+    - ./docker/data/pgsql:/var/lib/postgresql/data
+  ports:
+    - "5432:5432"
+  environment:
+    POSTGRES_DB: homestead
+    POSTGRES_USER: homestead
+    POSTGRES_PASSWORD: secret
